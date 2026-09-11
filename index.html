@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgroTelemetry - Control Room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #090d0a;
+      --panel: #111812;
+      --panel-border: #1e2c20;
+      --primary: #2ea043;
+      --primary-bright: #3fb950;
+      --accent: #e3b341;
+      --danger: #f85149;
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* BARRA SUPERIOR E STATUS DE CONEXÃO */
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 0.8rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      background: var(--primary);
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #162218;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--panel-border);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--primary-bright);
+      box-shadow: 0 0 8px var(--primary-bright);
+    }
+
+    .dot.offline {
+      background-color: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+    }
+
+    /* LAYOUT PRINCIPAL */
+    main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      flex: 1;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 1.2rem;
+    }
+
+    h2 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    /* REGISTRO DE TELEMETRIA (OFFLINE FIRST) */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-weight: 700;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 0.8rem;
+      background: #0d130e;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 1rem;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 1rem;
+      background: var(--primary);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:active { transform: scale(0.98); }
+
+    /* DASHBOARD E MÉTRICAS */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .metric-card {
+      background: #0d130e;
+      border: 1px solid var(--panel-border);
+      padding: 1rem;
+      border-radius: 6px;
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 0.3rem;
+    }
+
+    /* TABELA DE MÁQUINAS */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    th {
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 0.8rem;
+    }
+
+    td {
+      padding: 0.8rem;
+      border-bottom: 1px solid #162218;
+    }
+
+    .tag {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+    .tag-ok { background: #1b3821; color: var(--primary-bright); }
+    .tag-warn { background: #382d1b; color: var(--accent); }
+
+    .sync-banner {
+      background: #1c190b;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      AGRO-TELEMETRY <span class="brand-badge">v1.0</span>
+    </div>
+    <div class="status-bar">
+      <div class="status-pill">
+        <div id="net-dot" class="dot"></div>
+        <span id="net-text">ONLINE</span>
+      </div>
+      <div class="status-pill" style="color: var(--accent);">
+        Fila Offline: <strong id="queue-count" style="margin-left: 4px;">0</strong>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- FORMULÁRIO DE ENTRADA RÁPIDA (OPERACIONAL) -->
+    <section class="panel">
+      <h2>Apontamento de Campo</h2>
+      <form id="telemetry-form">
+        <div class="form-group">
+          <label>EQUIPAMENTO</label>
+          <select id="maquina" required>
+            <option value="Trator John Deere 6135J">Trator JD 6135J (T-01)</option>
+            <option value="Colheitadeira CR 7.90">Colheitadeira CR 7.90 (C-04)</option>
+            <option value="Pulverizador Patriot 350">Pulverizador Patriot (P-02)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>TALHÃO / BLOCO</label>
+          <input type="text" id="talhao" placeholder="Ex: T-12B" required>
+        </div>
+
+        <div class="form-group">
+          <label>HORÍMETRO ATUAL (h)</label>
+          <input type="number" id="horimetro" step="0.1" placeholder="4250.5" required>
+        </div>
+
+        <div class="form-group">
+          <label>CONSUMO DE COMBUSTÍVEL (L/h)</label>
+          <input type="number" id="consumo" step="0.1" placeholder="18.5" required>
+        </div>
+
+        <button type="submit" class="btn-submit">REGISTRAR OPERAÇÃO</button>
+      </form>
+    </section>
+
+    <!-- PAINEL MONITOR E TABELA -->
+    <section class="panel">
+      <h2>Telemetria em Tempo Real</h2>
+
+      <div id="sync-alert" class="sync-banner" style="display: none;">
+        <span>Existem dados locais salvos offline aguardando sincronização com o servidor.</span>
+        <button id="btn-sync" style="background: var(--accent); border:none; padding: 4px 8px; border-radius: 4px; font-weight:bold; cursor:pointer;">Sincronizar Agora</button>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <h2>Registros Hoje</h2>
+          <div class="metric-val" id="m-total">0</div>
+        </div>
+        <div class="metric-card">
+          <h2>Média Consumo</h2>
+          <div class="metric-val" id="m-consumo">0.0 <span style="font-size: 0.9rem">L/h</span></div>
+        </div>
+        <div class="metric-card">
+          <h2>Último Talhão</h2>
+          <div class="metric-val" id="m-talhao" style="font-size: 1.2rem;">--</div>
+        </div>
+      </div>
+
+      <h2>Histórico Recente</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Máquina</th>
+              <th>Talhão</th>
+              <th>Horímetro</th>
+              <th>Consumo</th>
+              <th>Status Redes</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Inserido dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ESTADO DA APLICAÇÃO & PERSISTÊNCIA LOCAL (LocalStorage)
+    let logs = JSON.parse(localStorage.getItem('agro_logs')) || [];
+    let offlineQueue = JSON.parse(localStorage.getItem('agro_queue')) || [];
+
+    const netDot = document.getElementById('net-dot');
+    const netText = document.getElementById('net-text');
+    const queueCount = document.getElementById('queue-count');
+    const syncAlert = document.getElementById('sync-alert');
+
+    // REDE E DETECÇÃO ONLINE/OFFLINE
+    function updateOnlineStatus() {
+      if (navigator.onLine) {
+        netDot.classList.remove('offline');
+        netText.textContent = 'ONLINE';
+      } else {
+        netDot.classList.add('offline');
+        netText.textContent = 'OFFLINE (LOCAL)';
+      }
+      updateQueueUI();
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    function updateQueueUI() {
+      queueCount.textContent = offlineQueue.length;
+      if (offlineQueue.length > 0 && navigator.onLine) {
+        syncAlert.style.display = 'flex';
+      } else {
+        syncAlert.style.display = 'none';
+      }
+    }
+
+    // PROCESSAR FORMULÁRIO
+    document.getElementById('telemetry-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const newEntry = {
+        id: Date.now(),
+        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        maquina: document.getElementById('maquina').value,
+        talhao: document.getElementById('talhao').value.toUpperCase(),
+        horimetro: parseFloat(document.getElementById('horimetro').value),
+        consumo: parseFloat(document.getElementById('consumo').value),
+        synced: navigator.onLine
+      };
+
+      logs.unshift(newEntry);
+      localStorage.setItem('agro_logs', JSON.stringify(logs));
+
+      if (!navigator.onLine) {
+        offlineQueue.push(newEntry);
+        localStorage.setItem('agro_queue', JSON.stringify(offlineQueue));
+      }
+
+      // Reset dos inputs
+      document.getElementById('talhao').value = '';
+      document.getElementById('horimetro').value = '';
+      document.getElementById('consumo').value = '';
+
+      render();
+    });
+
+    // SIMULAÇÃO DE SINCRONIZAÇÃO
+    document.getElementById('btn-sync').addEventListener('click', () => {
+      // Sincroniza fila offline marcando como salvas
+      logs = logs.map(log => ({ ...log, synced: true }));
+      offlineQueue = [];
+      
+      localStorage.setItem('agro_logs', JSON.stringify(logs));
+      localStorage.setItem('agro_queue', JSON.stringify(offlineQueue));
+      
+      render();
+    });
+
+    // RENDERIZAR TELA
+    function render() {
+      updateOnlineStatus();
+
+      // Métricas
+      document.getElementById('m-total').textContent = logs.length;
+      
+      if (logs.length > 0) {
+        const avgConsumo = (logs.reduce((acc, curr) => acc + curr.consumo, 0) / logs.length).toFixed(1);
+        document.getElementById('m-consumo').innerHTML = `${avgConsumo} <span style="font-size: 0.9rem">L/h</span>`;
+        document.getElementById('m-talhao').textContent = logs[0].talhao;
+      }
+
+      // Tabela
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      logs.slice(0, 7).forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.hora}</td>
+          <td>${item.maquina}</td>
+          <td><strong>${item.talhao}</strong></td>
+          <td>${item.horimetro} h</td>
+          <td>${item.consumo} L/h</td>
+          <td>
+            <span class="tag ${item.synced ? 'tag-ok' : 'tag-warn'}">
+              ${item.synced ? 'NUVEM' : 'LOCAL'}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Inicialização
+    render();
+  </script>
+</body>
+</html>
